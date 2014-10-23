@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+#legend {
+float:right;
+margin-right:50px;
+}
+
+#time{
+float:left;
+margin-left: 10px ;
+}
+
+#main{
+float:center;
+margin-left: 200px ;
+text-align:center;
+}
+
+.background {
+  fill: none;
+  pointer-events: all;
+  background-color: #e0ffff;
+}
+
+.feature {
+  fill: #C2F9E8;
+  cursor: pointer;
+}
+
+.feature.active {
+  fill: #fbd8e3;
+
+}
+
+.mesh {
+  fill: none;
+  stroke: #444;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.link {
+  visibility: hidden;
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+
+</style>
+<body style = "background-color: #444"> 
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="./scripts/d3.legend.js"></script>
+<div>
+  <div id="legend">
+      <img src="images/Legend.png" alt="Legend" width="180" height="128">
+  </div>
+  <div id="main">
+      <h1 align="center" style="color:#C2FFE8">Career Fair Map 2013</h1>
+  </div>
+  
+  <div id="time">
+      <input align="right" style = "height: 10px; float: middle; width: 275px; text-align: right" type="range" min="2009"   max="2015" value="2013" id="nRadius">
+      <p id = "timeline" style = "height: 10px; color:#C2FFE8 ;float: middle; width: 280px; text-align: right"> 
+        2009 &nbsp;2010 &nbsp;  2011 &nbsp;  2012 &nbsp;  2013 &nbsp; 2014 &nbsp; all&nbsp;  
+      </p>
+  </div>
+</div>
+<script>
+
+var width = 1248,
+    height = 650,
+    active = d3.select(null);
+
+var projection = d3.geo.albersUsa()
+    .scale(1000)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("background-color","#444");
+
+svg.append("rect")
+    .attr("class", "background")
+    .attr("width", width)
+    .attr("height", height)
+    .on("click", reset);
+
+var g = svg.append("g")
+    .style("stroke-width", "1.5px");
+
+var color = d3.scale.category20();
+
+var nodes = [],
+    links = [];
+
+function show_2013(){
+
+  d3.json("scripts/Agg_2013.json", function(error, json) {
+    
+    data = json;
+//     console.log(data);
+
+     svg.selectAll(".line")
+     .data(data.paths)
+     .enter().append("line")
+     .attr("class", "c_line")
+     .attr("x1",function(d){
+        return d.x;
+      })  
+     .attr("y1",function(d){
+        return d.y;
+      })
+     .attr("x2",713)
+     .attr("y2",292)
+     .attr("stroke", "#366")
+     .attr("stroke-width", function(d){
+        // console.log("stroke-width");
+        return (((d.Stud_count-1)/(68-1))*(10-1) + 1);;
+      })
+     .attr("fill", "none");
+
+     var elem = svg.selectAll("g")
+               .data(data.paths)
+
+      // console.log(data)
+     var elemEnter = elem.enter()
+                     .append("g")
+                     .attr("transform", function(d){return "translate("+d.x+","+d.y+")"})
+                     .attr("class", "c_line")
+
+
+     var circle = elemEnter.append("circle")
+         .attr("r", 14)
+         .attr("stroke","black")
+         .attr("fill", "white")
+
+     elemEnter.append("text")
+     .attr("dx", function(d){return 0;})
+     .attr("dy", function(d){return 8;})
+     .attr("text-anchor", "middle")
+     .attr("font-family", "Open Sans")
+     .attr("font-size", "25")
+     .attr("fill", '#003336')
+     .text(function(d){ 
+       // console.log(d);
+       return d.Comp_Count;})
+
+  }); 
+
+  svg.append("circle")
+     .attr("class", "c_line")
+     .attr("cx", 722)
+     .attr("cy", 270)
+     .attr("r", 20) 
+     .style("stroke", "black")     
+     .style("stroke-width", 0.05)
+     .style("fill", "url(#image1)");  
+}
+
+
+d3.json("scripts/map.json", function(error, us) {
+  g.selectAll("path")
+      .data(topojson.feature(us, us.objects.states).features)
+      .enter().append("path")
+      .attr("d", path)
+      .attr("class", "feature")
+      .on("click", clicked);
+
+  g.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "mesh")
+      .attr("d", path);
+
+  show_2013();
+  
+});
+
+function showNodes(id){
+  console.log(id)
+  
+  d3.json("scripts/Complete_2013.json", function(error, graph) {
+    // console.log(graph)
+    data1 = graph.nodes;
+
+  // var link = svg.selectAll(".link")
+  //     .data(graph.links)
+  //   .enter().append("line")
+  //     .attr("class", "link")
+  //     .style("stroke-width", 4);
+
+  var values = [];
+  var image;
+  for (var i = 0; i < data1.length; i++) {
+    if(data1[i].ID == id){
+      // console.log(data1[i].ID)
+      values.push(data1[i]);
+    }
+  }
+  // console.log(values)
+  var node = svg.selectAll(".circle")
+      // .data(data1[i])
+      .data(values)
+      .enter().append("g")
+      .attr("class", "circle")
+      .append("image")
+      .attr("xlink:href", function(d){
+        return d.image;
+      })
+      .attr("x", function(d){
+        // console.log(d.x);
+        return d.x
+      })
+      .attr("y", function(d){
+        // console.log(d.y);
+        return d.y
+      })
+      .attr("width", 50)
+      .attr("height", 50)
+      .attr("fixed", true)
+      .on("mouseover", function(d){
+        var g = d3.select(this)
+        var info = g.append('text')
+        // .classed('info', true)
+        .text(d.Name);
+      })
+      .on("mouseout", function(){
+        d3.select(this).select('text').remove();
+      })
+      .on("click", function(d){
+        image = d.image;
+        var number = d.NumberOfStudents;
+        var x = d.x;
+        var y = d.y;
+
+        reset(1);
+
+
+        svg.append("circle")
+           .attr("class", "c_line")
+           .attr("cx", 722)
+           .attr("cy", 270)
+           .attr("r", 20) 
+           .style("stroke", "black")     
+           .style("stroke-width", 0.05)
+           .style("fill", "url(#image1)");
+
+         svg.append("text")
+           .attr("class", "c_line1")
+           .attr("x", 684)
+           .attr("y", 270)
+           .text(d.NumberOfStudents)
+           .attr("text-anchor", "middle")
+           .attr("font-family", "Open Sans")
+           .attr("font-size", "30")
+           .attr("fill", '#ea2b67');
+
+         // var focus = svg.append("g")
+         //    .attr("class", "focus")
+         //    .style("display", "none");
+
+      d3.json("scripts/Agg_2013.json", function(error, json) {
+        data2 = json.paths;
+        // console.log("New Data")
+        console.log(data2);
+
+        var values2 = []
+        for (var i = 0; i < data2.length; i++) {
+          if(data2[i].ID == id){
+            console.log(data2[i].ID)
+            values2.push(data2[i]);
+          }
+        }
+        console.log(values2);
+        var img = svg.append("image")
+            .data(values2)
+            .attr("class", "c_line1")
+            .attr("xlink:href", function(d){
+                      return image;
+            })
+            .attr("width", 50)
+            .attr("height", 50)
+            .attr("x", function(k){
+                      return k.x-40;
+            })
+            .attr("y",function(k){
+                      return k.y-40;
+            });
+
+
+
+        var circle = svg.append("line")
+          .data(values2)
+          .attr("class", "c_line1")
+          .attr("x1", function(k){
+            // console.log("DATA")
+            // console.log(k)
+            return k.x;
+          })
+          .attr("y1", function(k){
+            return k.y
+          })
+          .attr("x2", 713)
+          .attr("y2", 285)
+          .attr("stroke-width", 3)
+          .attr("stroke", "#ea2b67");
+
+      });
+
+  });
+      node.append("title")
+      .text(function(d) { return d.Name; });
+  });
+
+}
+
+
+function clicked(d) {
+
+  d3.selectAll(".comp").style("opacity", 0);
+  d3.selectAll(".c_line1").style("opacity", 0);
+  d3.selectAll(".c_line").style("opacity", 0);
+  svg.selectAll(".circle").remove();
+  document.getElementById("timeline").style.visibility="hidden";
+  document.getElementById("nRadius").style.visibility="hidden";
+  showNodes(d.id);
+  d3.selectAll(".node").style("visibility", "visible");
+
+  if (active.node() === this) return reset();
+  active.classed("active", false);
+  active = d3.select(this).classed("active", true);
+
+  var bounds = path.bounds(d),
+      dx = bounds[1][0] - bounds[0][0],
+      dy = bounds[1][1] - bounds[0][1],
+      x = (bounds[0][0] + bounds[1][0]) / 2,
+      y = (bounds[0][1] + bounds[1][1]) / 2,
+      scale = .9 / Math.max(dx / width, dy / height),
+      translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+  g.transition()
+      .duration(750)
+      .style("stroke-width", 1.5 / scale + "px")
+      .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+
+  //svg.selectAll("circle").remove();
+  d3.selectAll("#link1").style("opacity", 0);
+}
+
+var lineData = [ { "x": 308,   "y": 330},  { "x": 722,  "y": 300}];
+
+var lineFunction = d3.svg.line()
+                          .x(function(d) { return d.x; })
+                          .y(function(d) { return d.y; })
+                          .interpolate("linear");
+
+function reset(val) {
+
+  
+  //d3.selectAll(".comp").style("opacity", 0);
+  svg.selectAll(".circle").remove();
+  d3.selectAll(".node").style("visibility", "hidden");
+  if(val!=1){
+    d3.selectAll(".c_line").style("opacity", 1);
+    d3.selectAll(".c_line1").style("opacity", 0);
+  }
+  active.classed("active", false);
+  active = d3.select(null);
+  document.getElementById("nRadius").style.visibility="visible";
+  document.getElementById("timeline").style.visibility="visible";
+
+  g.transition()
+      .duration(750)
+      .style("stroke-width", "1.5px")
+      .attr("transform", "");
+}
+
+</script>
+
+<svg id="mySvg" width="80" height="80">
+      <defs id="mdef">
+        <pattern id="image" x="0" y="0" height="40" width="40">
+          <image style = "" x="0" y="0" width="40" height="40" xlink:href="images/twitter.png"></image>
+        </pattern>
+        <pattern id="image1" x="0" y="0" height="40" width="40">
+          <image x="0" y="0" width="40" height="40" xlink:href="images/UIUC.png"></image>
+        </pattern>
+
+         <line x1="5" y1="5" x2="400" y2="400" stroke="black" stroke-width="5"  />
+       </defs>
+     </svg>
+</body>
